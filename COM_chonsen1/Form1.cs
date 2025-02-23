@@ -4,7 +4,7 @@ using System.IO.Ports;
 using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using Serilog;
-
+using System.Management;
 // Cấu hình Serilog
 
 namespace COM_chonsen1
@@ -42,6 +42,7 @@ namespace COM_chonsen1
         }
         void getAvailablePorts()
         {
+            getAvailableUSBDevices();
             // Lấy danh sách các cổng COM có sẵn
             string[] ports = SerialPort.GetPortNames();
             // Thêm các cổng vào comboBox1
@@ -55,7 +56,17 @@ namespace COM_chonsen1
             else
             {
                 // Thêm một mục thông báo không có cổng nào
-                comboBox1.Items.Add("No ports available");
+                comboBox1.Items.Add("No COM ports available");
+            }
+        }
+        void getAvailableUSBDevices()
+        {
+            var searcher = new ManagementObjectSearcher(@"Select * From Win32_USBHub");
+
+            foreach (var device in searcher.Get())
+            {
+                string deviceDescription = device["Description"].ToString();
+                comboBox1.Items.Add(deviceDescription);
             }
         }
         private void button3_Click(object sender, EventArgs e)
