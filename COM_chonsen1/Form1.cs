@@ -5,6 +5,9 @@ using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using Serilog;
 using System.Management;
+using System.Xml.Linq;
+using System.Threading.Tasks;
+
 // Cấu hình Serilog
 
 namespace COM_chonsen1
@@ -12,6 +15,9 @@ namespace COM_chonsen1
     public partial class Form1 : Form
     {
         private SerialPort serialPort1; // Khai báo serialPort1
+        private SerialPort serialPort2; // Khai báo serialPort2
+        private string receivedData;
+
         public Form1()
         {
             Log.Logger = new LoggerConfiguration()
@@ -19,8 +25,10 @@ namespace COM_chonsen1
               .CreateLogger();
             InitializeComponent();
             serialPort1 = new SerialPort();
+            serialPort2 = new SerialPort();
             getAvailablePorts();
         }
+
         private void textBox1_TextChanged(object sender, EventArgs e)
         {
             // Xử lý sự kiện TextChanged cho textBox1
@@ -82,7 +90,14 @@ namespace COM_chonsen1
                     serialPort1.PortName = comboBox1.Text;
                     serialPort1.BaudRate = Convert.ToInt32(comboBox3.Text);
 
-                    serialPort1.Open();
+                    serialPort2.PortName = "COM2"; // Ensure this matches your virtual port setup
+                    serialPort2.BaudRate = Convert.ToInt32(comboBox3.Text); // Assuming same baud rate
+
+                    if (!serialPort1.IsOpen)
+                        serialPort1.Open();
+
+                    if (!serialPort2.IsOpen)
+                        serialPort2.Open();
 
                     progressBar1.Value = 100;
                     button1.Enabled = true;
@@ -94,36 +109,57 @@ namespace COM_chonsen1
             }
             catch (Exception ex)
             {
-                textBox2.Text= $"Error: {ex.Message}";
+                textBox2.Text = $"Error: {ex.Message}";
                 MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
+
         private void button4_Click(object sender, EventArgs e)
         {
-            // Đóng cổng nối tiếp
             if (serialPort1.IsOpen)
             {
                 serialPort1.Close();
             }
 
-            // Đặt giá trị thanh tiến trình về 0
-            progressBar1.Value = 0;
+            if (serialPort2.IsOpen)
+            {
+                serialPort2.Close();
+            }
 
-            // Vô hiệu hóa các nút
+            progressBar1.Value = 0;
             button1.Enabled = false;
             button2.Enabled = false;
             button4.Enabled = false;
-
-            // Kích hoạt lại các nút cần thiết
             button3.Enabled = true;
             textBox1.Enabled = false;
         }
+
         private void button1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+        }
+        private void button1_Click_1(object sender, EventArgs e)
         {
             try
             {
+                if (!serialPort1.IsOpen)
+                {
+                    MessageBox.Show("Serial port is not open. Please open the port before sending data.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+                if (string.IsNullOrWhiteSpace(textBox1.Text))
+                {
+                    MessageBox.Show("TextBox1 is empty. Please enter some text to send.", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
                 serialPort1.WriteLine(textBox1.Text);
+               
                 textBox1.Text = "";
             }
             catch (Exception ex)
@@ -133,11 +169,25 @@ namespace COM_chonsen1
             }
         }
 
-        private void button2_Click(object sender, EventArgs e)
+
+
+        private async void button2_Click_2 (object sender, EventArgs e)
         {
             try
             {
-                textBox2.Text = serialPort1.ReadLine();
+                // Sử dụng Task.Run để đọc dữ liệu không đồng bộ
+                receivedData = await Task.Run(() =>
+                {
+                    if (!serialPort2.IsOpen)
+                    {
+                        throw new InvalidOperationException("Serial port is not open. Please open the port before reading data.");
+                    }
+
+                    return serialPort2.ReadLine(); // Read from serialPort2
+                });
+
+                // Hiển thị dữ liệu đã lưu
+                textBox2.Text = receivedData ?? "No data received";
             }
             catch (TimeoutException)
             {
@@ -145,10 +195,9 @@ namespace COM_chonsen1
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "An error occurred while reading from the serial port.");
+                Log.Error(ex, "An error occurred while displaying the data.");
                 MessageBox.Show($"Error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-
     }
 }

@@ -90,6 +90,7 @@
             button1.TabIndex = 6;
             button1.Text = "Send";
             button1.UseVisualStyleBackColor = true;
+            button1.Click += button1_Click_1;
             // 
             // textBox1
             // 
@@ -121,6 +122,7 @@
             button2.TabIndex = 6;
             button2.Text = "Read";
             button2.UseVisualStyleBackColor = true;
+            button2.Click += button2_Click_2;
             // 
             // textBox2
             // 
